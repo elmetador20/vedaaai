@@ -4,7 +4,8 @@ import {
   getAssignments,
   getAssignmentById,
   deleteAssignment,
-  regenerateAssignment
+  regenerateAssignment,
+  enhancePromptController
 } from '../controllers/assignment.controller';
 
 const router = Router();
@@ -14,5 +15,6 @@ router.get('/', getAssignments);
 router.get('/:id', getAssignmentById);
 router.delete('/:id', deleteAssignment);
 router.post('/:id/regenerate', regenerateAssignment);
+router.post('/enhance-prompt', enhancePromptController);
 
 export default router;

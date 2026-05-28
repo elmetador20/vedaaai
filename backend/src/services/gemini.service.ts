@@ -133,3 +133,47 @@ export async function generateQuestionPaper(
 
   return parsed;
 }
+
+export async function enhancePrompt(promptText: string): Promise<string> {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    throw new Error('GEMINI_API_KEY environment variable is not defined');
+  }
+
+  const genAI = new GoogleGenerativeAI(apiKey);
+  const modelNames = ['gemini-2.5-flash', 'gemini-2.0-flash'];
+
+  const prompt = `You are a world-class prompt engineer specializing in educational content.
+  Your task is to take a simple, draft instruction for generating an exam paper/assignment and enhance it to be highly descriptive, professional, detailed, and clear.
+  
+  User draft instruction: "${promptText}"
+  
+  Rewrite it into a comprehensive, clear set of additional instructions. The enhanced version should:
+  1. Specify formatting, tone, style, or structure details.
+  2. Maintain the core request and topic.
+  3. Be concise but highly actionable for an AI model.
+  4. Only output the enhanced instruction text itself. Do not include introductory text, meta-commentary, or formatting characters like quotes. Just output the clean rewritten instructions.`;
+
+  let lastError: any = null;
+  let responseText = '';
+
+  for (const modelName of modelNames) {
+    try {
+      const model = genAI.getGenerativeModel({ model: modelName });
+      const result = await model.generateContent(prompt);
+      responseText = result.response.text();
+      if (responseText) {
+        break;
+      }
+    } catch (e: any) {
+      console.warn(`Model ${modelName} failed:`, e.message || e);
+      lastError = e;
+    }
+  }
+
+  if (!responseText) {
+    throw lastError || new Error('All Gemini models failed to enhance prompt');
+  }
+
+  return responseText.trim().replace(/^"|"$/g, '');
+}

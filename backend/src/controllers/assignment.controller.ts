@@ -93,3 +93,20 @@ export async function regenerateAssignment(req: Request, res: Response) {
     res.status(500).json({ error: error.message });
   }
 }
+
+import { enhancePrompt } from '../services/gemini.service';
+
+export async function enhancePromptController(req: Request, res: Response) {
+  try {
+    const { prompt } = req.body;
+    if (!prompt || typeof prompt !== 'string') {
+      res.status(400).json({ error: 'prompt string is required' });
+      return;
+    }
+
+    const enhanced = await enhancePrompt(prompt);
+    res.json({ enhancedPrompt: enhanced });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+}
