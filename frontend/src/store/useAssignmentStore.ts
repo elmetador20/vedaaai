@@ -50,7 +50,7 @@ interface AssignmentState {
   loading: boolean;
   error: string | null;
   socketStatus: string | null;
-  
+
   fetchAssignments: () => Promise<void>;
   fetchAssignmentById: (id: string) => Promise<Assignment | null>;
   createAssignment: (data: Omit<Assignment, '_id' | 'status' | 'totalQuestions' | 'totalMarks' | 'createdAt' | 'updatedAt'>) => Promise<Assignment | null>;
@@ -60,9 +60,9 @@ interface AssignmentState {
   updateAssignmentInList: (assignment: Assignment) => void;
 }
 
-const API_BASE =  process.env.NEXT_PUBLIC_API_URL
-    ? `${process.env.NEXT_PUBLIC_API_URL}/api/assignments`
-    : 'http://localhost:5000/api/assignments';
+const API_BASE = process.env.NEXT_PUBLIC_API_URL
+  ? `${process.env.NEXT_PUBLIC_API_URL}/api/assignments`
+  : 'http://localhost:5000/';
 
 export const useAssignmentStore = create<AssignmentState>((set, get) => ({
   assignments: [],
