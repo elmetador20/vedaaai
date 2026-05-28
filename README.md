@@ -91,8 +91,8 @@ npm install
 Create a `.env` file in the `backend/` directory:
 ```env
 PORT=5000
-MONGO_URI=mongodb+srv://ahmedsharique250:Sharique250@cluster0.tkbpp5p.mongodb.net/?appName=Cluster0
-REDIS_URL=rediss://default:gQAAAAAAAhDsAAIgcDI5YTdlOWRhNWRjMzE0NjBhYjVjY2M3ZWZjMjYyNDZmZA@simple-roughy-135404.upstash.io:6379
+MONGO_URI=mongodb+srv://your_db_user:your_db_password@cluster0.your_cluster_id.mongodb.net/database_name
+REDIS_URL=rediss://default:your_upstash_redis_password@your_redis_host.upstash.io:6379
 REDIS_PORT=6379
 GEMINI_API_KEY=your_gemini_api_key
 FRONTEND_URL=http://localhost:3000
