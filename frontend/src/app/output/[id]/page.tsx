@@ -121,17 +121,17 @@ export default function OutputPage() {
         <Header title={currentAssignment.title} showBack />
       </div>
 
-      <div className="print:p-0 p-8 flex-1 overflow-y-auto bg-slate-100/50 print:bg-white flex flex-col items-center">
-        <div className="w-full max-w-4xl flex items-center justify-between mb-6 print:hidden">
+      <div className="print:p-0 p-4 md:p-8 flex-1 overflow-y-auto bg-slate-100/50 print:bg-white flex flex-col items-center w-full">
+        <div className="w-full max-w-4xl flex flex-col md:flex-row gap-4 items-stretch md:items-center md:justify-between mb-6 print:hidden px-2">
           <button
             onClick={() => router.push('/')}
-            className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-600 rounded-full text-xs font-bold hover:bg-slate-50 transition shadow-sm"
+            className="flex items-center justify-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-600 rounded-full text-xs font-bold hover:bg-slate-50 transition shadow-sm w-full md:w-auto"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
             Dashboard
           </button>
 
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2 md:gap-3 justify-center md:justify-end">
             <button
               onClick={() => setShowAnswerKey(!showAnswerKey)}
               className={`flex items-center gap-2 px-4 py-2 border rounded-full text-xs font-bold transition shadow-sm ${
@@ -174,7 +174,7 @@ export default function OutputPage() {
           </div>
         </div>
 
-        <div id="question-paper-card" className="w-full max-w-4xl bg-white border border-slate-200/80 rounded-3xl shadow-sm p-12 print:p-0 print:border-none print:shadow-none min-h-[1050px] flex flex-col font-serif relative">
+        <div id="question-paper-card" className="w-full max-w-4xl bg-white border border-slate-200/80 rounded-[24px] sm:rounded-3xl shadow-sm p-6 sm:p-12 print:p-0 print:border-none print:shadow-none min-h-[1050px] flex flex-col font-serif relative">
           <div className="absolute top-4 right-6 text-[10px] text-slate-300 font-sans print:hidden">
             VedaAI Generated Document
           </div>
@@ -195,7 +195,7 @@ export default function OutputPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-4 text-xs font-sans text-slate-700 border border-slate-200 p-4 rounded-xl mb-8 print:border-slate-400">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs font-sans text-slate-700 border border-slate-200 p-4 rounded-xl mb-8 print:border-slate-400">
             <div className="flex items-center gap-2">
               <span className="font-bold">Student Name:</span>
               <div className="flex-1 border-b border-dotted border-slate-400 h-4" />
@@ -226,7 +226,7 @@ export default function OutputPage() {
                   <div className="space-y-6">
                     {section.questions.map((question, qIdx) => (
                       <div key={question._id || qIdx} className="group relative">
-                        <div className="flex items-start justify-between gap-4">
+                        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4 border-b border-slate-100 sm:border-0 pb-4 sm:pb-0">
                           <div className="flex-1 space-y-3">
                             <span className="text-sm font-medium text-slate-900 leading-relaxed font-serif">
                               <span className="mr-2 font-bold font-sans text-xs">{qIdx + 1}.</span>
@@ -234,7 +234,7 @@ export default function OutputPage() {
                             </span>
 
                             {question.options && question.options.length > 0 && (
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2.5 pl-6 pt-1">
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2.5 pl-2 sm:pl-6 pt-1">
                                 {question.options.map((opt, oIdx) => {
                                   const isCorrectOpt = showAnswerKey && (
                                     (question.correctAnswer && (
@@ -288,7 +288,7 @@ export default function OutputPage() {
                             )}
                           </div>
 
-                          <div className="flex items-center gap-3 shrink-0 pt-0.5 font-sans">
+                          <div className="flex items-center gap-2 sm:gap-3 sm:shrink-0 pt-0.5 font-sans justify-start sm:justify-start">
                             <span className={`print:hidden inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold border ${
                               question.difficulty === 'Easy'
                                 ? 'bg-green-50 text-green-700 border-green-200'
