@@ -1,14 +1,12 @@
 # VedaAI – AI Assessment Creator
 
-VedaAI is a production-quality, full-stack application that enables teachers to create assignments and generate well-structured, print-ready question papers using Gemini AI. The application implements background job processing via BullMQ/Redis and real-time status updates via WebSockets (Socket.io) to deliver a responsive, SaaS-like user experience.
+VedaAI is a production-grade, full-stack application that enables teachers to create assignments and generate well-structured, print-ready question papers using Gemini AI. The application implements background job processing via BullMQ/Redis and real-time status updates via WebSockets (Socket.io) to deliver a responsive, SaaS-like user experience.
 
-## Tech Stack
+---
 
-- **Frontend**: Next.js 16 (App Router), TypeScript, Tailwind CSS, Zustand, React Hook Form + Zod
-- **Backend**: Node.js, Express, TypeScript, MongoDB (Mongoose), Redis, BullMQ, Socket.io
-- **AI**: Gemini 1.5 Flash API (Structured JSON output configuration)
+## 1. Architecture Overview
 
-## Architecture Overview
+VedaAI is built as a decoupled, multi-tiered application designed for scalability, rate-limit resilience, and real-time responsiveness.
 
 ```
                   ┌──────────────────────┐
@@ -37,14 +35,47 @@ VedaAI is a production-quality, full-stack application that enables teachers to 
                                      └─────────────────┘
 ```
 
-## Setup Instructions
+### System Components:
+1. **Next.js Client (Frontend)**: A responsive interface featuring Zustand state management, Zod schemas, and a custom Socket.io real-time listener room.
+2. **Express Server (Backend)**: Provides Rest APIs for assignment management, initiates BullMQ job sequences, and mounts the Socket.io WebSocket server.
+3. **MongoDB Database**: Stores client assignment metadata, question arrays, answer keys, explanations, and raw extracted document texts.
+4. **Upstash Redis Cluster**: Orchestrates background task synchronization and serves as the state backplane for BullMQ.
+5. **BullMQ Background Worker**: Processes high-latency generation jobs asynchronously, implementing transient retry policies and rate-limit backoffs.
+6. **Gemini AI Service**: Leverages `gemini-2.5-flash` and `gemini-2.0-flash` models with schema validation for structured response generation.
+
+---
+
+## 2. Our Technical Approach
+
+To achieve a production-ready application, we made key architectural choices to handle standard distributed-systems challenges:
+
+### A. Rate Limiting & Queue Resilience (Gemini Cooldown)
+* **Challenge**: The Gemini API enforces a strict rate limit per minute. If multiple users generate assessments simultaneously, standard API requests would crash or fail.
+* **Our Solution**: We decoupled the generation logic using **BullMQ**. If Gemini throws a rate-limit error (e.g., HTTP 429), the worker enters a transient cooldown using an exponential backoff retry policy `{ attempts: 5, backoff: { type: 'fixed', delay: 60000 } }`. 
+* **Soft Deletions Handling**: If a user deletes an assignment while the generation task is still queued in Redis, the worker catches the missing document gracefully, cancels the job, and avoids redundant external API calls or database crashes.
+
+### B. Context-Bound Document Assessments (Browser-Side PDF Extraction)
+* **Challenge**: When uploading PDFs, sending raw binary files to Gemini wastes input token bandwidth and can result in generic question generation.
+* **Our Solution**: We integrated `pdfjs-dist` on the frontend. When a PDF is selected, it is parsed page-by-page directly in the browser. The raw text is extracted and stored in the database (`fileContent`), and Gemini is given a strict prompt constraint instructing it to generate questions **exclusively** from the extracted text.
+
+### C. Client-Side PDF Generation
+* **Challenge**: Standard browser `window.print()` triggers system print dialogues, which often render headers, footers, and inconsistent paddings depending on the browser settings.
+* **Our Solution**: We implemented browser-level PDF compilation using `html2canvas-pro` and `jspdf`. Clicking "Save as PDF" captures the DOM elements of the A4 question paper, renders them onto a canvas at high resolution, and builds a clean paginated PDF saved directly to the user's disk.
+
+### D. Pixel-Perfect Figma Implementation
+* **Responsive Drawer & Tabs**: Implemented a floating mobile tab bar, custom icon assets (`/home2.png`, `/Calendar.png`, etc.) with state-based active styling (using CSS brightness-invert filters), and a slide-out hamburger drawer for mobile viewports.
+* **Adaptive Empty States**: Designed visual-first empty states that render graphic files (`/center.png` and `/text.png`) instead of unstyled textual placeholders, and dynamically hide search/filter bars when the system is empty.
+
+---
+
+## 3. Setup Instructions
 
 ### Prerequisites
 Make sure you have Node.js (v18+), MongoDB, and Redis installed and running.
-- **MongoDB**: Runs on port `27017`
-- **Redis**: Runs on port `6379`
+* **MongoDB**: Runs on port `27017` (local development) or MongoDB Atlas (production).
+* **Redis**: Runs locally on port `6379` or via Upstash Redis.
 
-### 1. Clone the repository and install dependencies
+### 1. Install Dependencies
 ```bash
 # Install backend dependencies
 cd backend
@@ -60,81 +91,45 @@ npm install
 Create a `.env` file in the `backend/` directory:
 ```env
 PORT=5000
-MONGO_URI=mongodb://127.0.0.1:27017/vedaai
-REDIS_HOST=127.0.0.1
+MONGO_URI=mongodb+srv://ahmedsharique250:Sharique250@cluster0.tkbpp5p.mongodb.net/?appName=Cluster0
+REDIS_URL=rediss://default:gQAAAAAAAhDsAAIgcDI5YTdlOWRhNWRjMzE0NjBhYjVjY2M3ZWZjMjYyNDZmZA@simple-roughy-135404.upstash.io:6379
 REDIS_PORT=6379
-GEMINI_API_KEY=your_gemini_api_key_here
+GEMINI_API_KEY=your_gemini_api_key
+FRONTEND_URL=http://localhost:3000
 ```
 
 Create a `.env.local` file in the `frontend/` directory:
 ```env
-NEXT_PUBLIC_API_URL=http://localhost:5000/api/assignments
+NEXT_PUBLIC_API_URL=http://localhost:5000
 NEXT_PUBLIC_WS_URL=http://localhost:5000
 ```
 
-### 3. Run the applications
-
+### 3. Start Development Servers
 ```bash
-# Start backend in development mode (from backend folder)
+# In the backend directory
 npm run dev
 
-# Start frontend in development mode (from frontend folder)
+# In the frontend directory
 npm run dev
 ```
 
-The frontend will run on [http://localhost:3000](http://localhost:3000). The backend runs on [http://localhost:5000](http://localhost:5000).
+The frontend will run on [http://localhost:3000](http://localhost:3000) and the backend runs on [http://localhost:5000](http://localhost:5000).
 
 ---
 
-## Detailed Flows
+## 4. Deployment Instructions
 
-### Queue & Background Job Flow
+### Backend Deployment (e.g. Railway, Render)
+1. Set the root directory of the service to `/backend`.
+2. Add your environment variables:
+   - `MONGO_URI` (MongoDB Atlas connection string)
+   - `REDIS_URL` (Upstash Redis URL)
+   - `GEMINI_API_KEY` (Gemini API token)
+   - `FRONTEND_URL` (Your deployed frontend domain for CORS handling)
 
-1. **Submission**: The teacher fills the form. The frontend performs client-side validation using Zod and sends a `POST /api/assignments` request to the backend.
-2. **Enqueueing**: The backend creates an assignment record in MongoDB with `status: 'queued'`. It then pushes a job containing the assignment's MongoDB `_id` into the BullMQ `assignment-queue` hosted on Redis. The API immediately responds with the created assignment metadata.
-3. **Worker Processing**: The BullMQ worker picks up the job asynchronously:
-   - Sets status to `'processing'` (emits WS update).
-   - Sets status to `'generating'` (emits WS update) and calls the Gemini API using the prompt compiler.
-   - Sets status to `'formatting'` (emits WS update) and structures the parsed JSON data.
-   - Saves the final structured questions inside the assignment's document in MongoDB, updates the status to `'completed'`, and emits the final WS event.
-
-### WebSocket Real-time Updates Flow
-
-- Upon submitting the form, the frontend redirects to `/progress/[id]` and establishes a Socket.io connection.
-- The client sends a `join` event with the `assignmentId` room name.
-- As the BullMQ worker transitions the job through states (`processing` -> `generating` -> `formatting` -> `completed`), it calls the `notifyClient(assignmentId, payload)` helper.
-- The helper broadcasts a `status-update` event with the current status state to the room.
-- The frontend Zustand store listens to these events, updating the step tracker UI in real time. Upon receiving the `completed` status, it immediately routes the user to the exam paper view.
-
----
-
-## AI Prompting & JSON Output Format
-
-To ensure structural parsing without direct text rendering, the Gemini API is configured with `responseMimeType: 'application/json'`. The prompt provides strict rules on section naming, MCQ options (exactly 4 options), marks per question, and difficulty tags.
-
-Expected JSON schema returned by Gemini:
-```json
-{
-  "sections": [
-    {
-      "title": "Section A: Multiple Choice Questions",
-      "instruction": "Attempt all questions. Choose the most correct option.",
-      "questions": [
-        {
-          "text": "What is the unit of electrical resistance?",
-          "difficulty": "Easy",
-          "marks": 1,
-          "options": ["Ampere", "Ohm", "Volt", "Watt"]
-        }
-      ]
-    }
-  ]
-}
-```
-
----
-
-## Deployment Instructions
-
-1. **Backend**: Deploy on platforms like Render, Railway, Heroku, or AWS EC2. Make sure to configure the environment variables and ensure Redis (e.g. Upstash Redis) and MongoDB (MongoDB Atlas) connections are secure.
-2. **Frontend**: Deploy the Next.js app on Vercel or Netlify. Set the `NEXT_PUBLIC_API_URL` and `NEXT_PUBLIC_WS_URL` to point to the deployed backend.
+### Frontend Deployment (e.g. Vercel)
+1. Configure your build settings in Vercel to build the `/frontend` subfolder.
+2. In Vercel Project Settings, add the environment variables:
+   - `NEXT_PUBLIC_API_URL` = `https://your-backend.railway.app`
+   - `NEXT_PUBLIC_WS_URL` = `https://your-backend.railway.app`
+3. Vercel will automatically compile, run `npm run build`, and host the site.
