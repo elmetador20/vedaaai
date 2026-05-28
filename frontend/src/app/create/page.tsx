@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { Plus, X, Upload, Calendar, ArrowRight, ArrowLeft, Mic, Sparkles } from 'lucide-react';
+import { Plus, X, Upload, Calendar, ArrowRight, ArrowLeft, Mic } from 'lucide-react';
 import { useAssignmentStore } from '@/store/useAssignmentStore';
 import Header from '@/components/Header';
 
@@ -32,14 +32,11 @@ const PRESET_QUESTION_TYPES = [
   'Numerical Problems',
 ];
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/assignments';
-
 export default function CreateAssignment() {
   const router = useRouter();
   const createAssignment = useAssignmentStore((state) => state.createAssignment);
   const [fileName, setFileName] = useState<string | null>(null);
   const [fileContent, setFileContent] = useState<string | null>(null);
-  const [isEnhancing, setIsEnhancing] = useState(false);
 
   const {
     register,
@@ -68,33 +65,9 @@ export default function CreateAssignment() {
   });
 
   const watchQuestionTypes = watch('questionTypes') || [];
-  const watchInstructions = watch('additionalInstructions') || '';
 
   const totalQuestions = watchQuestionTypes.reduce((sum, q) => sum + (q.count || 0), 0);
   const totalMarks = watchQuestionTypes.reduce((sum, q) => sum + ((q.count || 0) * (q.marks || 0)), 0);
-
-  const handleEnhancePrompt = async () => {
-    const currentPrompt = watchInstructions;
-    if (currentPrompt.trim().length < 5) return;
-
-    setIsEnhancing(true);
-    try {
-      const res = await fetch(`${API_BASE}/enhance-prompt`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt: currentPrompt }),
-      });
-      if (!res.ok) throw new Error('Failed to enhance prompt');
-      const data = await res.json();
-      if (data.enhancedPrompt) {
-        setValue('additionalInstructions', data.enhancedPrompt);
-      }
-    } catch (err) {
-      console.error('Error enhancing prompt:', err);
-    } finally {
-      setIsEnhancing(false);
-    }
-  };
 
   const onSubmit = async (values: FormValues) => {
     const payload = {
@@ -254,10 +227,13 @@ export default function CreateAssignment() {
                 <input
                   type="date"
                   {...register('dueDate')}
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-sm focus:outline-none focus:bg-white focus:border-slate-300 transition text-slate-800"
+                  className={`w-full px-4 py-3 bg-slate-50 border rounded-xl text-sm focus:outline-none focus:bg-white focus:border-slate-300 transition text-slate-800 ${
+                    errors.dueDate ? 'border-red-300' : 'border-slate-100'
+                  }`}
                 />
                 <Calendar className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
               </div>
+              {errors.dueDate && <p className="text-xs text-red-500">{errors.dueDate.message}</p>}
             </div>
 
             <div className="space-y-4">
@@ -465,36 +441,14 @@ export default function CreateAssignment() {
                   placeholder="e.g. Generate a question paper for 3 hour exam duration..."
                   {...register('additionalInstructions')}
                   rows={4}
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-2xl text-sm focus:outline-none focus:bg-white focus:border-slate-300 transition text-slate-800 pr-12 pb-14"
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-2xl text-sm focus:outline-none focus:bg-white focus:border-slate-300 transition text-slate-800 pr-12"
                 />
-                <div className="absolute right-4 bottom-4 flex items-center gap-2">
-                  {watchInstructions.trim().length >= 5 && (
-                    <button
-                      type="button"
-                      onClick={handleEnhancePrompt}
-                      disabled={isEnhancing}
-                      className="px-3 py-1.5 bg-slate-900 text-white rounded-full text-xs font-bold hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition flex items-center gap-1.5 shadow-sm"
-                    >
-                      {isEnhancing ? (
-                        <>
-                          <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                          Enhancing...
-                        </>
-                      ) : (
-                        <>
-                          <Sparkles className="w-3.5 h-3.5" />
-                          Enhance with AI
-                        </>
-                      )}
-                    </button>
-                  )}
-                  <button
-                    type="button"
-                    className="p-2 bg-white hover:bg-slate-50 border border-slate-100 rounded-full text-slate-400 hover:text-slate-600 shadow-sm transition"
-                  >
-                    <Mic className="w-4 h-4" />
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  className="absolute right-4 bottom-4 p-2 bg-white hover:bg-slate-50 border border-slate-100 rounded-full text-slate-400 hover:text-slate-600 shadow-sm transition"
+                >
+                  <Mic className="w-4 h-4" />
+                </button>
               </div>
             </div>
           </div>
